@@ -1,8 +1,5 @@
 let storedData = {};
 const FORM_ENDPOINT = "";
-
-// For personal-name residential property finance costs, this simplified model
-// uses a basic-rate tax credit.
 const PERSONAL_FINANCE_COST_CREDIT_RATE = 0.20;
 
 function getValue(id) {
@@ -37,23 +34,38 @@ function updateTaxHint() {
 function toggleMortgageFields() {
   const mortgageType = document.getElementById("mortgageType").value;
   const paymentLabel = document.getElementById("mortgagePaymentLabel");
-  const interestLabel = document.getElementById("mortgageInterestLabel");
+  const interestModeLabel = document.getElementById("interestModeLabel");
   const mortgageHelp = document.getElementById("mortgageHelp");
-  const paymentInput = document.getElementById("mortgagePayment");
 
   if (mortgageType === "interestOnly") {
-    paymentLabel.style.display = "none";
-    paymentInput.value = "";
-    interestLabel.querySelector("span")?.remove();
-
-    interestLabel.childNodes[0].textContent = "Monthly Mortgage Interest / Payment (£)";
+    paymentLabel.classList.add("hidden");
+    interestModeLabel.classList.remove("hidden");
     mortgageHelp.textContent =
       "For interest-only mortgages, the interest is effectively the monthly payment used for both cashflow and tax.";
   } else {
-    paymentLabel.style.display = "block";
-    interestLabel.childNodes[0].textContent = "Monthly Mortgage Interest (£)";
+    paymentLabel.classList.remove("hidden");
+    interestModeLabel.classList.remove("hidden");
     mortgageHelp.textContent =
       "For repayment mortgages, cashflow uses the full payment but tax uses interest only.";
+  }
+
+  toggleInterestMode();
+}
+
+function toggleInterestMode() {
+  const interestMode = document.getElementById("interestInputMode").value;
+  const manualLabel = document.getElementById("manualInterestLabel");
+  const annualRateLabel = document.getElementById("annualRateLabel");
+  const estimatedInterestLabel = document.getElementById("estimatedInterestLabel");
+
+  if (interestMode === "manual") {
+    manualLabel.classList.remove("hidden");
+    annualRateLabel.classList.add("hidden");
+    estimatedInterestLabel.classList.add("hidden");
+  } else {
+    manualLabel.classList.add("hidden");
+    annualRateLabel.classList.remove("hidden");
+    estimatedInterestLabel.classList.remove("hidden");
   }
 }
 
@@ -65,7 +77,9 @@ function fillDemoData() {
   document.getElementById("rent").value = 975;
   document.getElementById("mortgageType").value = "repayment";
   document.getElementById("mortgagePayment").value = 545;
+  document.getElementById("interestInputMode").value = "manual";
   document.getElementById("mortgageInterest").value = 380;
+  document.getElementById("annualInterestRate").value = "";
   document.getElementById("costs").value = 95;
   document.getElementById("insurance").value = 26;
   document.getElementById("voids").value = 55;
@@ -141,7 +155,8 @@ function getRefinanceSignal(equity, roe, monthlyAfterTaxCashflow) {
     className: "score-good",
     text:
       "The current numbers do not create an obvious refinance flag based on this simplified model."
-  };
+    };
+  }
 }
 
 function getVerdict(score, monthlyAfterTaxCashflow, roe, refinanceSignal) {
@@ -186,27 +201,47 @@ function getVerdict(score, monthlyAfterTaxCashflow, roe, refinanceSignal) {
     verdictClass: "score-bad",
     verdictText:
       "The return profile looks weak. Review rent, costs, financing, and whether the equity would perform better elsewhere."
-  };
+    };
+  }
+}
+
+function getEstimatedMonthlyInterest() {
+  const loan = getValue("loan");
+  const annualInterestRate = getValue("annualInterestRate");
+  const monthlyInterest = loan > 0 && annualInterestRate > 0
+    ? (loan * (annualInterestRate / 100)) / 12
+    : 0;
+
+  document.getElementById("estimatedMonthlyInterest").value = formatCurrency(monthlyInterest);
+  return monthlyInterest;
 }
 
 function getMortgageInputs() {
   const mortgageType = document.getElementById("mortgageType").value;
+  const interestInputMode = document.getElementById("interestInputMode").value;
+
   const mortgagePaymentInput = getValue("mortgagePayment");
-  const mortgageInterestInput = getValue("mortgageInterest");
+  const manualInterestInput = getValue("mortgageInterest");
+  const estimatedInterestInput = getEstimatedMonthlyInterest();
 
   let monthlyMortgagePayment = 0;
   let monthlyMortgageInterest = 0;
 
+  if (interestInputMode === "manual") {
+    monthlyMortgageInterest = manualInterestInput;
+  } else {
+    monthlyMortgageInterest = estimatedInterestInput;
+  }
+
   if (mortgageType === "interestOnly") {
-    monthlyMortgagePayment = mortgageInterestInput;
-    monthlyMortgageInterest = mortgageInterestInput;
+    monthlyMortgagePayment = monthlyMortgageInterest;
   } else {
     monthlyMortgagePayment = mortgagePaymentInput;
-    monthlyMortgageInterest = mortgageInterestInput;
   }
 
   return {
     mortgageType,
+    interestInputMode,
     monthlyMortgagePayment,
     monthlyMortgageInterest
   };
@@ -254,6 +289,7 @@ function calculateTaxAndCashflow() {
     ownershipType,
     taxRate,
     mortgageType: mortgage.mortgageType,
+    interestInputMode: mortgage.interestInputMode,
     annualRent,
     annualMortgagePayment,
     annualMortgageInterest,
@@ -290,7 +326,7 @@ function calculate() {
   const mortgage = getMortgageInputs();
 
   if (!value || !loan || !rent || !taxField || !mortgage.monthlyMortgageInterest) {
-    alert("Fill in Property Value, Mortgage Balance, Monthly Rent, Tax Rate and the mortgage interest field first.");
+    alert("Fill in Property Value, Mortgage Balance, Monthly Rent, Tax Rate and either the interest field or annual interest rate first.");
     return;
   }
 
@@ -299,7 +335,7 @@ function calculate() {
     return;
   }
 
-  if (mortgage.monthlyMortgageInterest > mortgage.monthlyMortgagePayment && mortgage.mortgageType === "repayment") {
+  if (mortgage.mortgageType === "repayment" && mortgage.monthlyMortgageInterest > mortgage.monthlyMortgagePayment) {
     alert("For repayment mortgages, monthly interest should not normally be higher than the full monthly payment.");
     return;
   }
@@ -329,6 +365,7 @@ function calculate() {
     rent,
     ownershipType: numbers.ownershipType,
     mortgageType: numbers.mortgageType,
+    interestInputMode: numbers.interestInputMode,
     taxRate: numbers.taxRate,
 
     maintenance: getValue("costs"),
@@ -372,6 +409,7 @@ function buildSummaryText(d) {
   return [
     `Ownership: ${d.ownershipType === "personal" ? "Personal Name" : "Ltd Company"}`,
     `Mortgage type: ${d.mortgageType === "interestOnly" ? "Interest Only" : "Repayment"}`,
+    `Interest input mode: ${d.interestInputMode === "estimate" ? "Estimated from annual rate" : "Manual monthly interest"}`,
     `Verdict: ${d.verdict} (${d.score}/100)`,
     `Monthly after-tax cashflow: ${formatCurrency(d.monthlyAfterTaxCashflow)}`,
     `Annual after-tax cashflow: ${formatCurrency(d.annualAfterTaxCashflow)}`,
@@ -398,6 +436,7 @@ function renderResults() {
   const d = storedData;
   const ownershipLabel = d.ownershipType === "personal" ? "Personal Name" : "Ltd Company";
   const mortgageLabel = d.mortgageType === "interestOnly" ? "Interest Only" : "Repayment";
+  const interestModeLabel = d.interestInputMode === "estimate" ? "Estimated from annual rate" : "Entered manually";
 
   const resultsHtml = `
     <div class="result-card wide">
@@ -475,7 +514,8 @@ function renderResults() {
       <h3>Action Summary</h3>
       <div class="summary-box">
         Ownership type: <strong>${ownershipLabel}</strong>.<br />
-        Mortgage type: <strong>${mortgageLabel}</strong>.<br /><br />
+        Mortgage type: <strong>${mortgageLabel}</strong>.<br />
+        Interest input mode: <strong>${interestModeLabel}</strong>.<br /><br />
         This property currently shows estimated monthly after-tax cashflow of
         <strong>${formatCurrency(d.monthlyAfterTaxCashflow)}</strong>, a net yield of
         <strong>${formatPercent(d.netYield)}</strong>, return on equity of
@@ -551,6 +591,7 @@ function unlock() {
         email: email,
         ownership_type: storedData.ownershipType,
         mortgage_type: storedData.mortgageType,
+        interest_input_mode: storedData.interestInputMode,
         verdict: storedData.verdict,
         score: storedData.score,
         monthly_after_tax_cashflow: storedData.monthlyAfterTaxCashflow,
