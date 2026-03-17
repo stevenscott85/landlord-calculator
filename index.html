@@ -6,7 +6,7 @@
   <title>Should I Sell My Rental? | UK Landlord Calculator</title>
   <meta
     name="description"
-    content="Free UK landlord calculator to estimate true rental profit, net yield, return on equity, sale proceeds and a better keep-vs-sell decision."
+    content="Free UK landlord calculator to estimate after-tax cashflow, yield, return on equity, sale cash before CGT, and whether to hold, refinance or consider selling."
   />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -29,17 +29,17 @@
           <div class="pill-row">
             <span class="pill">Free tool</span>
             <span class="pill">UK landlords</span>
-            <span class="pill">Better scoring</span>
+            <span class="pill">Tax-aware</span>
           </div>
 
           <h2 class="hero-title">
-            Most landlords focus on rent.
-            <span>Better landlords focus on return on equity.</span>
+            Rent is not the metric.
+            <span>Return on equity is.</span>
           </h2>
 
           <p class="hero-text">
-            This calculator estimates after-tax cashflow, yield, return on equity,
-            return on net sale cash, and then gives a more realistic hold-vs-sell view.
+            This calculator estimates after-tax cashflow, gross yield, net yield,
+            return on equity, sale cash before CGT, and a clearer hold / review / refinance / sell view.
           </p>
 
           <div class="hero-actions">
@@ -52,15 +52,15 @@
           <div class="trust-row">
             <div class="trust-item">
               <span class="trust-number">Cashflow</span>
-              <span class="trust-label">after tax</span>
+              <span class="trust-label">real monthly result</span>
             </div>
             <div class="trust-item">
               <span class="trust-number">ROE</span>
               <span class="trust-label">equity working rate</span>
             </div>
             <div class="trust-item">
-              <span class="trust-number">Better score</span>
-              <span class="trust-label">less easy to game</span>
+              <span class="trust-number">Refinance flag</span>
+              <span class="trust-label">capital recycling view</span>
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@
             </div>
 
             <div class="preview-stat">
-              <span class="preview-label">Estimated Monthly Net Cashflow</span>
+              <span class="preview-label">Estimated Monthly After-Tax Cashflow</span>
               <strong id="previewProfit">£0.00</strong>
             </div>
 
@@ -84,13 +84,13 @@
                 <strong id="previewRoe">0.00%</strong>
               </div>
               <div class="mini-card">
-                <span class="mini-label">Net Sale Cash</span>
+                <span class="mini-label">Sale Cash Before CGT</span>
                 <strong id="previewSale">£0.00</strong>
               </div>
             </div>
 
             <div class="preview-footer">
-              <span class="status-chip">Uses ownership type + better scoring</span>
+              <span class="status-chip">Repayment + interest-only supported</span>
             </div>
           </div>
         </div>
@@ -100,32 +100,32 @@
         <div class="benefit-card">
           <h3>What this checks</h3>
           <ul>
-            <li>After-tax monthly and yearly cashflow</li>
+            <li>After-tax monthly and annual cashflow</li>
             <li>Gross yield and net yield</li>
             <li>Return on equity (ROE)</li>
-            <li>Return on net sale cash</li>
-            <li>Estimated net sale proceeds</li>
-            <li>Weighted hold-vs-sell score</li>
+            <li>Equity left in the property</li>
+            <li>Estimated sale cash before CGT</li>
+            <li>Refinance opportunity flag</li>
           </ul>
         </div>
 
         <div class="benefit-card">
-          <h3>What changed</h3>
+          <h3>Why this version is better</h3>
           <ul>
-            <li>Personal vs Ltd tax logic</li>
-            <li>Mortgage payment separated from interest</li>
-            <li>Scoring no longer rewards equity too blindly</li>
-            <li>Higher trapped equity with weak return gets punished</li>
+            <li>Mortgage type is handled properly</li>
+            <li>Cashflow uses payment, tax uses interest</li>
+            <li>Personal vs Ltd logic is separated</li>
+            <li>High equity with weak return gets highlighted</li>
           </ul>
         </div>
 
         <div class="benefit-card">
-          <h3>How to use it properly</h3>
+          <h3>How to use it</h3>
           <ul>
-            <li>Use realistic monthly interest, not just payment</li>
-            <li>Use proper maintenance and void allowances</li>
+            <li>Use realistic voids and maintenance</li>
+            <li>For repayment mortgages, enter both payment and interest</li>
             <li>Compare ROE against what your equity could earn elsewhere</li>
-            <li>Treat the verdict as a decision aid, not tax advice</li>
+            <li>Treat this as a decision tool, not formal tax advice</li>
           </ul>
         </div>
       </section>
@@ -158,7 +158,7 @@
               </label>
 
               <p class="field-help" id="taxHint">
-                Personal-name mode uses a simple finance-cost tax credit model.
+                Personal-name mode uses a simplified finance-cost tax credit model.
               </p>
             </div>
 
@@ -186,21 +186,28 @@
             </div>
 
             <div class="form-block">
-              <h3>Monthly Finance</h3>
+              <h3>Mortgage</h3>
 
               <label>
-                Mortgage Payment (£)
+                Mortgage Type
+                <select id="mortgageType" onchange="toggleMortgageFields(); updatePreview();">
+                  <option value="repayment">Repayment</option>
+                  <option value="interestOnly">Interest Only</option>
+                </select>
+              </label>
+
+              <label id="mortgagePaymentLabel">
+                Monthly Mortgage Payment (£)
                 <input type="number" id="mortgagePayment" placeholder="e.g. 545" oninput="updatePreview()" />
               </label>
 
-              <label>
-                Mortgage Interest (£)
-                <input type="number" id="mortgageInterest" placeholder="e.g. 375" oninput="updatePreview()" />
+              <label id="mortgageInterestLabel">
+                Monthly Mortgage Interest (£)
+                <input type="number" id="mortgageInterest" placeholder="e.g. 380" oninput="updatePreview()" />
               </label>
 
-              <p class="field-help">
-                Payment and interest are not the same. Capital repayment affects cashflow,
-                but tax treatment depends on interest.
+              <p class="field-help" id="mortgageHelp">
+                For repayment mortgages, cashflow uses the full payment but tax uses interest only.
               </p>
             </div>
 
@@ -231,8 +238,7 @@
           </div>
 
           <p class="small-note">
-            This tool is a commercial decision framework. It simplifies tax and should not replace
-            accountant or tax advice.
+            Sale cash is shown before Capital Gains Tax. This tool simplifies tax and is not accountant-grade advice.
           </p>
         </div>
       </section>
@@ -242,8 +248,8 @@
           <div class="lock-badge">Unlock full result</div>
           <h2>See your full breakdown</h2>
           <p>
-            Enter your email to reveal your score, tax estimate, yield, ROE,
-            return on sale cash, and a clearer hold-vs-sell verdict.
+            Enter your email to reveal your cashflow, yield, return on equity,
+            refinance view, sale cash before CGT, and verdict.
           </p>
 
           <div class="email-form">
@@ -252,8 +258,7 @@
           </div>
 
           <p class="micro-note">
-            Later you can connect this to Formspree and follow up with services,
-            insurance, mortgage offers, or exit options.
+            Later you can connect this to Formspree and follow up with mortgage, insurance or exit offers.
           </p>
         </div>
       </section>
@@ -275,16 +280,6 @@
         </div>
 
         <div id="results" class="results-grid"></div>
-      </section>
-
-      <section class="footer-cta">
-        <div class="footer-cta-card">
-          <h2>Next logical upgrade</h2>
-          <p>
-            The next serious improvement is a downloadable PDF report and a personalised
-            landlord action plan based on the result.
-          </p>
-        </div>
       </section>
     </main>
   </div>
