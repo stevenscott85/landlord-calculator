@@ -1,13 +1,10 @@
 :root {
-  --bg: #0b1020;
-  --bg-soft: #121933;
   --card: rgba(255, 255, 255, 0.92);
   --text: #0f172a;
   --muted: #5b6475;
   --line: rgba(15, 23, 42, 0.08);
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
-  --secondary: #eef3ff;
   --success: #138a4b;
   --danger: #c0392b;
   --warning: #b7791f;
@@ -15,7 +12,6 @@
   --radius-xl: 24px;
   --radius-lg: 18px;
   --radius-md: 14px;
-  --radius-sm: 10px;
 }
 
 * {
@@ -117,8 +113,7 @@ body {
 .benefit-card,
 .calculator-card,
 .email-card,
-.results-section,
-.footer-cta-card {
+.results-section {
   background: var(--card);
   border: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow);
@@ -182,7 +177,7 @@ body {
   padding: 13px 18px;
   font-size: 15px;
   font-weight: 800;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .btn:hover {
@@ -353,8 +348,7 @@ body {
 
 .card-header h2,
 .results-header h2,
-.email-card h2,
-.footer-cta-card h2 {
+.email-card h2 {
   margin: 6px 0 0;
   font-size: 28px;
 }
@@ -590,22 +584,6 @@ select:focus {
   line-height: 1.7;
 }
 
-.score-list strong {
-  color: #0f172a;
-}
-
-.footer-cta-card {
-  padding: 28px;
-  text-align: center;
-}
-
-.footer-cta-card p {
-  max-width: 760px;
-  margin: 12px auto 0;
-  color: var(--muted);
-  line-height: 1.7;
-}
-
 .hidden {
   display: none;
 }
@@ -620,7 +598,6 @@ select:focus {
   .benefits,
   .calculator-section,
   .email-section,
-  .footer-cta,
   .results-actions {
     display: none !important;
   }
@@ -687,8 +664,7 @@ select:focus {
   .benefit-card,
   .calculator-card,
   .email-card,
-  .results-section,
-  .footer-cta-card {
+  .results-section {
     padding: 20px;
     border-radius: 20px;
   }
