@@ -2,7 +2,6 @@
   --bg: #0b1020;
   --bg-soft: #121933;
   --card: rgba(255, 255, 255, 0.92);
-  --card-strong: #ffffff;
   --text: #0f172a;
   --muted: #5b6475;
   --line: rgba(15, 23, 42, 0.08);
@@ -247,7 +246,6 @@ body {
   padding: 20px;
   background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
   color: white;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .preview-top {
@@ -396,7 +394,8 @@ label {
   margin-bottom: 12px;
 }
 
-input {
+input,
+select {
   width: 100%;
   margin-top: 8px;
   padding: 14px 14px;
@@ -408,9 +407,17 @@ input {
   outline: none;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: rgba(37, 99, 235, 0.45);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+.field-help {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .action-row {
@@ -574,6 +581,17 @@ input:focus {
   border: 1px solid #dbe7ff;
   color: #334155;
   line-height: 1.7;
+}
+
+.score-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.score-list strong {
+  color: #0f172a;
 }
 
 .footer-cta-card {
