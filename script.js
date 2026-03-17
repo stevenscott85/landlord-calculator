@@ -1,11 +1,8 @@
 let storedData = {};
 const FORM_ENDPOINT = "";
 
-/*
-  Current simple assumption:
-  - Personal-name mode uses a 20% finance-cost credit.
-  - This is deliberately shown as a simplified model, not tax advice.
-*/
+// For personal-name residential property finance costs, this simplified model
+// uses a basic-rate tax credit.
 const PERSONAL_FINANCE_COST_CREDIT_RATE = 0.20;
 
 function getValue(id) {
@@ -33,7 +30,30 @@ function updateTaxHint() {
       "Personal-name mode uses a simplified finance-cost tax credit model rather than full mortgage-interest deduction.";
   } else {
     taxHint.textContent =
-      "Ltd mode treats mortgage interest as deductible for this simplified calculator, while capital repayment still affects cashflow.";
+      "Ltd mode treats mortgage interest as deductible for this simplified calculator.";
+  }
+}
+
+function toggleMortgageFields() {
+  const mortgageType = document.getElementById("mortgageType").value;
+  const paymentLabel = document.getElementById("mortgagePaymentLabel");
+  const interestLabel = document.getElementById("mortgageInterestLabel");
+  const mortgageHelp = document.getElementById("mortgageHelp");
+  const paymentInput = document.getElementById("mortgagePayment");
+
+  if (mortgageType === "interestOnly") {
+    paymentLabel.style.display = "none";
+    paymentInput.value = "";
+    interestLabel.querySelector("span")?.remove();
+
+    interestLabel.childNodes[0].textContent = "Monthly Mortgage Interest / Payment (£)";
+    mortgageHelp.textContent =
+      "For interest-only mortgages, the interest is effectively the monthly payment used for both cashflow and tax.";
+  } else {
+    paymentLabel.style.display = "block";
+    interestLabel.childNodes[0].textContent = "Monthly Mortgage Interest (£)";
+    mortgageHelp.textContent =
+      "For repayment mortgages, cashflow uses the full payment but tax uses interest only.";
   }
 }
 
@@ -43,12 +63,15 @@ function fillDemoData() {
   document.getElementById("value").value = 185000;
   document.getElementById("loan").value = 118000;
   document.getElementById("rent").value = 975;
+  document.getElementById("mortgageType").value = "repayment";
   document.getElementById("mortgagePayment").value = 545;
   document.getElementById("mortgageInterest").value = 380;
   document.getElementById("costs").value = 95;
   document.getElementById("insurance").value = 26;
   document.getElementById("voids").value = 55;
+
   updateTaxHint();
+  toggleMortgageFields();
   updatePreview();
 }
 
@@ -59,13 +82,13 @@ function scoreBand(value, bands) {
   return bands[bands.length - 1].score;
 }
 
-function getMetricScores(monthlyNetCashflow, netYield, roe, saleCashReturn) {
-  const cashflowScore = scoreBand(monthlyNetCashflow, [
+function getMetricScores(monthlyAfterTaxCashflow, netYield, roe) {
+  const cashflowScore = scoreBand(monthlyAfterTaxCashflow, [
     { max: 0, score: 0 },
     { max: 100, score: 20 },
     { max: 200, score: 40 },
-    { max: 300, score: 55 },
-    { max: 500, score: 75 },
+    { max: 300, score: 60 },
+    { max: 500, score: 80 },
     { max: Infinity, score: 100 }
   ]);
 
@@ -87,66 +110,105 @@ function getMetricScores(monthlyNetCashflow, netYield, roe, saleCashReturn) {
     { max: Infinity, score: 100 }
   ]);
 
-  const saleCashReturnScore = scoreBand(saleCashReturn, [
-    { max: 0, score: 0 },
-    { max: 2, score: 10 },
-    { max: 4, score: 30 },
-    { max: 6, score: 55 },
-    { max: 8, score: 75 },
-    { max: Infinity, score: 100 }
-  ]);
-
   return {
     cashflowScore,
     netYieldScore,
-    roeScore,
-    saleCashReturnScore
+    roeScore
   };
 }
 
 function buildWeightedScore(metricScores) {
   const weighted =
-    metricScores.cashflowScore * 0.35 +
-    metricScores.netYieldScore * 0.20 +
-    metricScores.roeScore * 0.30 +
-    metricScores.saleCashReturnScore * 0.15;
+    metricScores.cashflowScore * 0.4 +
+    metricScores.netYieldScore * 0.2 +
+    metricScores.roeScore * 0.4;
 
   return Math.round(weighted);
 }
 
-function getVerdict(score, monthlyNetCashflow, roe) {
-  if (score >= 80 && monthlyNetCashflow > 0 && roe >= 6) {
+function getRefinanceSignal(equity, roe, monthlyAfterTaxCashflow) {
+  if (equity >= 50000 && roe < 6 && monthlyAfterTaxCashflow > 0) {
     return {
-      verdict: "STRONG HOLD",
-      verdictClass: "score-good",
-      verdictText:
-        "This looks like a stronger asset: positive cashflow, acceptable return profile, and less obvious pressure to redeploy equity."
-    };
-  }
-
-  if (score >= 60) {
-    return {
-      verdict: "HOLD",
-      verdictClass: "score-good",
-      verdictText:
-        "This looks broadly holdable, but you should still compare the return on equity against alternative uses of your capital."
-    };
-  }
-
-  if (score >= 45) {
-    return {
-      verdict: "BORDERLINE / REVIEW",
-      verdictClass: "score-neutral",
-      verdictText:
-        "This is not a clean hold. The property needs a serious review on cashflow, yield, and whether your trapped equity is working hard enough."
+      label: "REFINANCE OPPORTUNITY",
+      className: "score-neutral",
+      text:
+        "You appear to have substantial equity with a relatively weak return on equity. A refinance and capital redeployment review may be worth exploring."
     };
   }
 
   return {
-    verdict: "CONSIDER SELLING / REDEPLOYING EQUITY",
+    label: "NO STRONG REFINANCE FLAG",
+    className: "score-good",
+    text:
+      "The current numbers do not create an obvious refinance flag based on this simplified model."
+  };
+}
+
+function getVerdict(score, monthlyAfterTaxCashflow, roe, refinanceSignal) {
+  if (monthlyAfterTaxCashflow < 0) {
+    return {
+      verdict: "CONSIDER SELLING / RESTRUCTURING",
+      verdictClass: "score-bad",
+      verdictText:
+        "Negative after-tax cashflow is a red flag. Review pricing, costs, finance structure, and whether the asset still deserves your capital."
+    };
+  }
+
+  if (roe >= 7 && monthlyAfterTaxCashflow > 0 && score >= 70) {
+    return {
+      verdict: "STRONG HOLD",
+      verdictClass: "score-good",
+      verdictText:
+        "This looks like a stronger asset with decent cashflow and a more acceptable return on equity."
+    };
+  }
+
+  if (refinanceSignal.label === "REFINANCE OPPORTUNITY") {
+    return {
+      verdict: "HOLD BUT REVIEW REFINANCE",
+      verdictClass: "score-neutral",
+      verdictText:
+        "The property may be workable, but the trapped equity does not appear to be working especially hard."
+    };
+  }
+
+  if (score >= 50) {
+    return {
+      verdict: "HOLD / REVIEW",
+      verdictClass: "score-good",
+      verdictText:
+        "This looks broadly holdable, but you should compare the return on equity against alternative uses of your capital."
+    };
+  }
+
+  return {
+    verdict: "REVIEW SERIOUSLY",
     verdictClass: "score-bad",
     verdictText:
-      "This looks weak on return. The numbers suggest your equity may be underperforming and deserves a serious exit or restructure review."
+      "The return profile looks weak. Review rent, costs, financing, and whether the equity would perform better elsewhere."
+  };
+}
+
+function getMortgageInputs() {
+  const mortgageType = document.getElementById("mortgageType").value;
+  const mortgagePaymentInput = getValue("mortgagePayment");
+  const mortgageInterestInput = getValue("mortgageInterest");
+
+  let monthlyMortgagePayment = 0;
+  let monthlyMortgageInterest = 0;
+
+  if (mortgageType === "interestOnly") {
+    monthlyMortgagePayment = mortgageInterestInput;
+    monthlyMortgageInterest = mortgageInterestInput;
+  } else {
+    monthlyMortgagePayment = mortgagePaymentInput;
+    monthlyMortgageInterest = mortgageInterestInput;
+  }
+
+  return {
+    mortgageType,
+    monthlyMortgagePayment,
+    monthlyMortgageInterest
   };
 }
 
@@ -155,11 +217,13 @@ function calculateTaxAndCashflow() {
   const taxRate = getValue("tax") / 100;
 
   const monthlyRent = getValue("rent");
-  const monthlyMortgagePayment = getValue("mortgagePayment");
-  const monthlyMortgageInterest = getValue("mortgageInterest");
   const monthlyMaintenance = getValue("costs");
   const monthlyInsurance = getValue("insurance");
   const monthlyVoids = getValue("voids");
+
+  const mortgage = getMortgageInputs();
+  const monthlyMortgagePayment = mortgage.monthlyMortgagePayment;
+  const monthlyMortgageInterest = mortgage.monthlyMortgageInterest;
 
   const annualRent = monthlyRent * 12;
   const annualMortgagePayment = monthlyMortgagePayment * 12;
@@ -171,15 +235,11 @@ function calculateTaxAndCashflow() {
   let financeCostCredit = 0;
 
   if (ownershipType === "personal") {
-    // Simple model:
-    // taxable profit before finance-cost restriction
     taxableProfit = annualRent - annualNonFinanceCosts;
-
     const taxBeforeCredit = Math.max(0, taxableProfit * taxRate);
     financeCostCredit = annualMortgageInterest * PERSONAL_FINANCE_COST_CREDIT_RATE;
     annualTax = Math.max(0, taxBeforeCredit - financeCostCredit);
   } else {
-    // Simple company-style model:
     taxableProfit = annualRent - annualNonFinanceCosts - annualMortgageInterest;
     annualTax = Math.max(0, taxableProfit * taxRate);
   }
@@ -193,6 +253,7 @@ function calculateTaxAndCashflow() {
   return {
     ownershipType,
     taxRate,
+    mortgageType: mortgage.mortgageType,
     annualRent,
     annualMortgagePayment,
     annualMortgageInterest,
@@ -208,71 +269,71 @@ function calculateTaxAndCashflow() {
 function updatePreview() {
   const value = getValue("value");
   const loan = getValue("loan");
-
   const numbers = calculateTaxAndCashflow();
 
   const equity = value - loan;
   const saleCosts = value * 0.03;
-  const netSaleCash = equity - saleCosts;
+  const saleCashBeforeCGT = equity - saleCosts;
   const roe = equity > 0 ? (numbers.annualAfterTaxCashflow / equity) * 100 : 0;
 
   document.getElementById("previewProfit").textContent = formatCurrency(numbers.monthlyAfterTaxCashflow);
   document.getElementById("previewRoe").textContent = formatPercent(roe);
-  document.getElementById("previewSale").textContent = formatCurrency(netSaleCash);
+  document.getElementById("previewSale").textContent = formatCurrency(saleCashBeforeCGT);
 }
 
 function calculate() {
   const value = getValue("value");
   const loan = getValue("loan");
   const rent = getValue("rent");
-  const mortgagePayment = getValue("mortgagePayment");
-  const mortgageInterest = getValue("mortgageInterest");
   const taxField = getValue("tax");
 
-  if (!value || !loan || !rent || !mortgagePayment || !mortgageInterest || !taxField) {
-    alert("Fill in Property Value, Mortgage Balance, Monthly Rent, Mortgage Payment, Mortgage Interest and Tax Rate first.");
+  const mortgage = getMortgageInputs();
+
+  if (!value || !loan || !rent || !taxField || !mortgage.monthlyMortgageInterest) {
+    alert("Fill in Property Value, Mortgage Balance, Monthly Rent, Tax Rate and the mortgage interest field first.");
     return;
   }
 
-  if (mortgageInterest > mortgagePayment) {
-    alert("Mortgage interest should not normally be higher than the total mortgage payment.");
+  if (mortgage.mortgageType === "repayment" && !mortgage.monthlyMortgagePayment) {
+    alert("For repayment mortgages, enter the full monthly mortgage payment as well.");
+    return;
+  }
+
+  if (mortgage.monthlyMortgageInterest > mortgage.monthlyMortgagePayment && mortgage.mortgageType === "repayment") {
+    alert("For repayment mortgages, monthly interest should not normally be higher than the full monthly payment.");
     return;
   }
 
   const numbers = calculateTaxAndCashflow();
-
   const equity = value - loan;
   const grossYield = value > 0 ? (numbers.annualRent / value) * 100 : 0;
   const netYield = value > 0 ? (numbers.annualAfterTaxCashflow / value) * 100 : 0;
-
   const saleCosts = value * 0.03;
-  const netSaleCash = equity - saleCosts;
-
+  const saleCashBeforeCGT = equity - saleCosts;
   const roe = equity > 0 ? (numbers.annualAfterTaxCashflow / equity) * 100 : 0;
-  const saleCashReturn = netSaleCash > 0 ? (numbers.annualAfterTaxCashflow / netSaleCash) * 100 : 0;
   const fiveYearHoldProfit = numbers.annualAfterTaxCashflow * 5;
 
   const metricScores = getMetricScores(
     numbers.monthlyAfterTaxCashflow,
     netYield,
-    roe,
-    saleCashReturn
+    roe
   );
 
   const overallScore = buildWeightedScore(metricScores);
-  const verdictData = getVerdict(overallScore, numbers.monthlyAfterTaxCashflow, roe);
+  const refinanceSignal = getRefinanceSignal(equity, roe, numbers.monthlyAfterTaxCashflow);
+  const verdictData = getVerdict(overallScore, numbers.monthlyAfterTaxCashflow, roe, refinanceSignal);
 
   storedData = {
     value,
     loan,
     rent,
-    mortgagePayment,
-    mortgageInterest,
+    ownershipType: numbers.ownershipType,
+    mortgageType: numbers.mortgageType,
+    taxRate: numbers.taxRate,
+
     maintenance: getValue("costs"),
     insurance: getValue("insurance"),
     voids: getValue("voids"),
-    ownershipType: numbers.ownershipType,
-    taxRate: numbers.taxRate,
 
     annualRent: numbers.annualRent,
     annualMortgagePayment: numbers.annualMortgagePayment,
@@ -288,16 +349,15 @@ function calculate() {
     grossYield,
     netYield,
     saleCosts,
-    netSaleCash,
+    saleCashBeforeCGT,
     roe,
-    saleCashReturn,
     fiveYearHoldProfit,
 
     cashflowScore: metricScores.cashflowScore,
     netYieldScore: metricScores.netYieldScore,
     roeScore: metricScores.roeScore,
-    saleCashReturnScore: metricScores.saleCashReturnScore,
 
+    refinanceSignal,
     score: overallScore,
     verdict: verdictData.verdict,
     verdictClass: verdictData.verdictClass,
@@ -311,15 +371,15 @@ function calculate() {
 function buildSummaryText(d) {
   return [
     `Ownership: ${d.ownershipType === "personal" ? "Personal Name" : "Ltd Company"}`,
+    `Mortgage type: ${d.mortgageType === "interestOnly" ? "Interest Only" : "Repayment"}`,
     `Verdict: ${d.verdict} (${d.score}/100)`,
     `Monthly after-tax cashflow: ${formatCurrency(d.monthlyAfterTaxCashflow)}`,
     `Annual after-tax cashflow: ${formatCurrency(d.annualAfterTaxCashflow)}`,
     `Gross yield: ${formatPercent(d.grossYield)}`,
     `Net yield: ${formatPercent(d.netYield)}`,
     `Return on equity: ${formatPercent(d.roe)}`,
-    `Return on net sale cash: ${formatPercent(d.saleCashReturn)}`,
     `Equity: ${formatCurrency(d.equity)}`,
-    `Estimated net sale cash: ${formatCurrency(d.netSaleCash)}`
+    `Sale cash before CGT: ${formatCurrency(d.saleCashBeforeCGT)}`
   ].join("\n");
 }
 
@@ -336,8 +396,8 @@ function copySummary() {
 
 function renderResults() {
   const d = storedData;
-
   const ownershipLabel = d.ownershipType === "personal" ? "Personal Name" : "Ltd Company";
+  const mortgageLabel = d.mortgageType === "interestOnly" ? "Interest Only" : "Repayment";
 
   const resultsHtml = `
     <div class="result-card wide">
@@ -350,15 +410,23 @@ function renderResults() {
     </div>
 
     <div class="result-card wide">
+      <h3>Refinance Signal</h3>
+      <div class="score-box">
+        <span class="score-pill ${d.refinanceSignal.className}">${d.refinanceSignal.label}</span>
+      </div>
+      <p class="metric-sub">${d.refinanceSignal.text}</p>
+    </div>
+
+    <div class="result-card">
       <h3>Monthly After-Tax Cashflow</h3>
       <p class="metric-value">${formatCurrency(d.monthlyAfterTaxCashflow)}</p>
-      <p class="metric-sub">This is the actual monthly cash result after costs, mortgage payment and estimated tax.</p>
+      <p class="metric-sub">What the property is estimated to leave you with each month after tax.</p>
     </div>
 
     <div class="result-card">
       <h3>Annual After-Tax Cashflow</h3>
       <p class="metric-value">${formatCurrency(d.annualAfterTaxCashflow)}</p>
-      <p class="metric-sub">This is what the property is estimated to put in your pocket over a year.</p>
+      <p class="metric-sub">Estimated yearly cash result after tax.</p>
     </div>
 
     <div class="result-card">
@@ -380,25 +448,19 @@ function renderResults() {
     </div>
 
     <div class="result-card">
-      <h3>Return on Net Sale Cash</h3>
-      <p class="metric-value">${formatPercent(d.saleCashReturn)}</p>
-      <p class="metric-sub">Annual after-tax cashflow divided by estimated net sale cash.</p>
-    </div>
-
-    <div class="result-card">
-      <h3>Equity</h3>
+      <h3>Equity Left In</h3>
       <p class="metric-value">${formatCurrency(d.equity)}</p>
       <p class="metric-sub">Property value minus mortgage balance.</p>
     </div>
 
     <div class="result-card">
-      <h3>Net Sale Cash</h3>
-      <p class="metric-value">${formatCurrency(d.netSaleCash)}</p>
-      <p class="metric-sub">Equity after estimated sale costs.</p>
+      <h3>Sale Cash Before CGT</h3>
+      <p class="metric-value">${formatCurrency(d.saleCashBeforeCGT)}</p>
+      <p class="metric-sub">Estimated equity after selling costs, before any CGT calculation.</p>
     </div>
 
     <div class="result-card">
-      <h3>Estimated Tax</h3>
+      <h3>Estimated Annual Tax</h3>
       <p class="metric-value">${formatCurrency(d.annualTax)}</p>
       <p class="metric-sub">${ownershipLabel} mode. Simplified estimate only.</p>
     </div>
@@ -412,12 +474,13 @@ function renderResults() {
     <div class="result-card full">
       <h3>Action Summary</h3>
       <div class="summary-box">
-        Ownership type: <strong>${ownershipLabel}</strong>.<br /><br />
+        Ownership type: <strong>${ownershipLabel}</strong>.<br />
+        Mortgage type: <strong>${mortgageLabel}</strong>.<br /><br />
         This property currently shows estimated monthly after-tax cashflow of
         <strong>${formatCurrency(d.monthlyAfterTaxCashflow)}</strong>, a net yield of
         <strong>${formatPercent(d.netYield)}</strong>, return on equity of
-        <strong>${formatPercent(d.roe)}</strong>, and estimated net sale cash of
-        <strong>${formatCurrency(d.netSaleCash)}</strong>.
+        <strong>${formatPercent(d.roe)}</strong>, and sale cash before CGT of
+        <strong>${formatCurrency(d.saleCashBeforeCGT)}</strong>.
         <br /><br />
         That produces a weighted score of <strong>${d.score}/100</strong> and a current verdict of
         <strong>${d.verdict}</strong>.
@@ -427,13 +490,12 @@ function renderResults() {
     <div class="result-card full">
       <h3>How the score was built</h3>
       <ul class="score-list">
-        <li><strong>35% Monthly Cashflow Score:</strong> ${d.cashflowScore}/100</li>
+        <li><strong>40% Monthly Cashflow Score:</strong> ${d.cashflowScore}/100</li>
         <li><strong>20% Net Yield Score:</strong> ${d.netYieldScore}/100</li>
-        <li><strong>30% Return on Equity Score:</strong> ${d.roeScore}/100</li>
-        <li><strong>15% Return on Net Sale Cash Score:</strong> ${d.saleCashReturnScore}/100</li>
+        <li><strong>40% Return on Equity Score:</strong> ${d.roeScore}/100</li>
       </ul>
       <p class="metric-sub">
-        This means a property with weak return on equity can no longer look good just because equity is high.
+        This version is deliberately simpler. It focuses on pocket cashflow and how hard your equity is actually working.
       </p>
     </div>
 
@@ -454,8 +516,8 @@ function renderResults() {
       <h3>Recommended Next Steps</h3>
       <div class="links-list">
         <a href="#" target="_blank" rel="noopener noreferrer">🏦 Compare buy-to-let mortgage options</a>
+        <a href="#" target="_blank" rel="noopener noreferrer">🔁 Explore refinance options</a>
         <a href="#" target="_blank" rel="noopener noreferrer">🛡️ Get landlord insurance quotes</a>
-        <a href="#" target="_blank" rel="noopener noreferrer">⚡ Review utility and cost savings</a>
         <a href="#" target="_blank" rel="noopener noreferrer">🏠 Explore sale or exit options</a>
       </div>
     </div>
@@ -488,15 +550,16 @@ function unlock() {
       body: JSON.stringify({
         email: email,
         ownership_type: storedData.ownershipType,
+        mortgage_type: storedData.mortgageType,
         verdict: storedData.verdict,
         score: storedData.score,
         monthly_after_tax_cashflow: storedData.monthlyAfterTaxCashflow,
         annual_after_tax_cashflow: storedData.annualAfterTaxCashflow,
         net_yield: storedData.netYield,
         return_on_equity: storedData.roe,
-        return_on_sale_cash: storedData.saleCashReturn,
         equity: storedData.equity,
-        net_sale_cash: storedData.netSaleCash
+        sale_cash_before_cgt: storedData.saleCashBeforeCGT,
+        refinance_flag: storedData.refinanceSignal.label
       })
     }).catch((error) => {
       console.error("Lead capture failed:", error);
@@ -507,4 +570,5 @@ function unlock() {
 }
 
 updateTaxHint();
+toggleMortgageFields();
 updatePreview();
