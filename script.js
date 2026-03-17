@@ -155,8 +155,7 @@ function getRefinanceSignal(equity, roe, monthlyAfterTaxCashflow) {
     className: "score-good",
     text:
       "The current numbers do not create an obvious refinance flag based on this simplified model."
-    };
-  }
+  };
 }
 
 function getVerdict(score, monthlyAfterTaxCashflow, roe, refinanceSignal) {
