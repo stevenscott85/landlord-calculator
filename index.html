@@ -1,1 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Should I Sell My Rental? | UK Landlord Calculator</title>
+  <meta
+    name="description"
+    content="Free UK landlord calculator to see your true rental profit, net yield, equity, sale proceeds and whether your property is worth keeping."
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-badge">UK</div>
+        <div>
+          <p class="eyebrow">Landlord Decision Tool</p>
+          <h1 class="brand-title">Should I Sell My Rental?</h1>
+        </div>
+      </div>
+      <a href="#calculatorCard" class="topbar-cta">Run Free Check</a>
+    </header>
 
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="pill-row">
+            <span class="pill">Free tool</span>
+            <span class="pill">UK landlords</span>
+            <span class="pill">Instant result</span>
+          </div>
+
+          <h2 class="hero-title">
+            Most landlords think they’re making money.
+            <span>Very few know their real number.</span>
+          </h2>
+
+          <p class="hero-text">
+            This calculator estimates your true rental position after mortgage,
+            costs and tax, then shows whether your property looks like a
+            stronger hold or a weaker asset.
+          </p>
+
+          <div class="hero-actions">
+            <a href="#calculatorCard" class="btn btn-primary">Start Calculation</a>
+            <button class="btn btn-secondary" type="button" onclick="fillDemoData()">
+              Use Demo Numbers
+            </button>
+          </div>
+
+          <div class="trust-row">
+            <div class="trust-item">
+              <span class="trust-number">60 sec</span>
+              <span class="trust-label">to complete</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-number">5-year</span>
+              <span class="trust-label">hold view</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-number">Keep / sell</span>
+              <span class="trust-label">decision score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-panel">
+          <div class="preview-card">
+            <div class="preview-top">
+              <span class="preview-dot"></span>
+              <span class="preview-dot"></span>
+              <span class="preview-dot"></span>
+            </div>
+
+            <div class="preview-stat">
+              <span class="preview-label">Estimated Monthly Net Profit</span>
+              <strong id="previewProfit">£0.00</strong>
+            </div>
+
+            <div class="preview-grid">
+              <div class="mini-card">
+                <span class="mini-label">Net Yield</span>
+                <strong id="previewYield">0.00%</strong>
+              </div>
+              <div class="mini-card">
+                <span class="mini-label">Net Sale Cash</span>
+                <strong id="previewSale">£0</strong>
+              </div>
+            </div>
+
+            <div class="preview-footer">
+              <span class="status-chip">Premium-style lead tool</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="benefits">
+        <div class="benefit-card">
+          <h3>What this checks</h3>
+          <ul>
+            <li>True monthly and yearly profit</li>
+            <li>Gross yield and net yield</li>
+            <li>Equity and estimated net sale proceeds</li>
+            <li>Simple keep-vs-sell score</li>
+            <li>5-year hold projection</li>
+          </ul>
+        </div>
+
+        <div class="benefit-card">
+          <h3>Why landlords use it</h3>
+          <ul>
+            <li>To see whether a property is actually worth keeping</li>
+            <li>To expose hidden drag from voids and ongoing costs</li>
+            <li>To compare cashflow against equity release from a sale</li>
+            <li>To capture a clearer decision before refinancing or exiting</li>
+          </ul>
+        </div>
+
+        <div class="benefit-card">
+          <h3>What happens next</h3>
+          <ul>
+            <li>Enter your property numbers</li>
+            <li>Unlock your full result with email</li>
+            <li>Review your score and action summary</li>
+            <li>Use the links for next-step offers or services</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="calculator-section" id="calculatorCard">
+        <div class="calculator-card">
+          <div class="card-header">
+            <div>
+              <p class="section-kicker">Calculator</p>
+              <h2>Run your landlord decision check</h2>
+            </div>
+            <button class="text-btn" type="button" onclick="fillDemoData()">Load demo</button>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-block">
+              <h3>Property Details</h3>
+              <label>
+                Property Value (£)
+                <input type="number" id="value" placeholder="e.g. 180000" oninput="updatePreview()" />
+              </label>
+              <label>
+                Mortgage Balance (£)
+                <input type="number" id="loan" placeholder="e.g. 120000" oninput="updatePreview()" />
+              </label>
+            </div>
+
+            <div class="form-block">
+              <h3>Income</h3>
+              <label>
+                Monthly Rent (£)
+                <input type="number" id="rent" placeholder="e.g. 950" oninput="updatePreview()" />
+              </label>
+            </div>
+
+            <div class="form-block">
+              <h3>Monthly Costs</h3>
+              <label>
+                Mortgage Payment (£)
+                <input type="number" id="mortgage" placeholder="e.g. 525" oninput="updatePreview()" />
+              </label>
+              <label>
+                Maintenance Allowance (£)
+                <input type="number" id="costs" placeholder="e.g. 90" oninput="updatePreview()" />
+              </label>
+              <label>
+                Insurance (£)
+                <input type="number" id="insurance" placeholder="e.g. 25" oninput="updatePreview()" />
+              </label>
+              <label>
+                Voids Allowance (£)
+                <input type="number" id="voids" placeholder="e.g. 50" oninput="updatePreview()" />
+              </label>
+            </div>
+
+            <div class="form-block">
+              <h3>Tax</h3>
+              <label>
+                Tax Rate (%)
+                <input type="number" id="tax" placeholder="e.g. 20 or 40" oninput="updatePreview()" />
+              </label>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button class="btn btn-primary btn-large" type="button" onclick="calculate()">
+              Calculate My Result
+            </button>
+          </div>
+
+          <p class="small-note">
+            This tool gives a decision framework for lead generation and planning.
+            It is not personal tax advice.
+          </p>
+        </div>
+      </section>
+
+      <section id="emailGate" class="email-section hidden">
+        <div class="email-card">
+          <div class="lock-badge">Unlock full result</div>
+          <h2>See your full breakdown</h2>
+          <p>
+            Enter your email to reveal your score, yields, equity position,
+            estimated sale proceeds and 5-year hold projection.
+          </p>
+
+          <div class="email-form">
+            <input type="email" id="email" placeholder="Enter your email address" />
+            <button class="btn btn-primary" type="button" onclick="unlock()">View Full Results</button>
+          </div>
+
+          <p class="micro-note">
+            You can later connect this to Formspree and follow up with offers,
+            reminders and landlord services.
+          </p>
+        </div>
+      </section>
+
+      <section id="resultsWrap" class="results-section hidden">
+        <div class="results-header">
+          <div>
+            <p class="section-kicker">Your Result</p>
+            <h2>Property decision summary</h2>
+          </div>
+          <div class="results-actions">
+            <button class="btn btn-secondary" type="button" onclick="copySummary()">
+              Copy Summary
+            </button>
+            <button class="btn btn-secondary" type="button" onclick="window.print()">
+              Print
+            </button>
+          </div>
+        </div>
+
+        <div id="results" class="results-grid"></div>
+      </section>
+
+      <section class="footer-cta">
+        <div class="footer-cta-card">
+          <h2>Turn this into a real business asset</h2>
+          <p>
+            Add affiliate links, a personalised checklist PDF, more landlord tools,
+            and email follow-up to turn this into a lead engine instead of just a calculator.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
