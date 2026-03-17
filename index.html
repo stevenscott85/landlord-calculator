@@ -90,7 +90,7 @@
             </div>
 
             <div class="preview-footer">
-              <span class="status-chip">Repayment + interest-only supported</span>
+              <span class="status-chip">Interest can be entered or estimated</span>
             </div>
           </div>
         </div>
@@ -114,8 +114,8 @@
           <ul>
             <li>Mortgage type is handled properly</li>
             <li>Cashflow uses payment, tax uses interest</li>
+            <li>Interest can be entered manually or estimated from rate</li>
             <li>Personal vs Ltd logic is separated</li>
-            <li>High equity with weak return gets highlighted</li>
           </ul>
         </div>
 
@@ -123,7 +123,7 @@
           <h3>How to use it</h3>
           <ul>
             <li>Use realistic voids and maintenance</li>
-            <li>For repayment mortgages, enter both payment and interest</li>
+            <li>For repayment mortgages, enter payment and either interest or rate</li>
             <li>Compare ROE against what your equity could earn elsewhere</li>
             <li>Treat this as a decision tool, not formal tax advice</li>
           </ul>
@@ -201,9 +201,27 @@
                 <input type="number" id="mortgagePayment" placeholder="e.g. 545" oninput="updatePreview()" />
               </label>
 
-              <label id="mortgageInterestLabel">
+              <label id="interestModeLabel">
+                Interest Input Mode
+                <select id="interestInputMode" onchange="toggleInterestMode(); updatePreview();">
+                  <option value="manual">Enter Monthly Interest</option>
+                  <option value="estimate">Estimate from Annual Interest Rate</option>
+                </select>
+              </label>
+
+              <label id="manualInterestLabel">
                 Monthly Mortgage Interest (£)
                 <input type="number" id="mortgageInterest" placeholder="e.g. 380" oninput="updatePreview()" />
+              </label>
+
+              <label id="annualRateLabel" class="hidden">
+                Annual Interest Rate (%)
+                <input type="number" id="annualInterestRate" placeholder="e.g. 5" oninput="updatePreview()" />
+              </label>
+
+              <label id="estimatedInterestLabel" class="hidden">
+                Estimated Monthly Interest (£)
+                <input type="text" id="estimatedMonthlyInterest" value="£0.00" readonly />
               </label>
 
               <p class="field-help" id="mortgageHelp">
@@ -238,7 +256,8 @@
           </div>
 
           <p class="small-note">
-            Sale cash is shown before Capital Gains Tax. This tool simplifies tax and is not accountant-grade advice.
+            Sale cash is shown before Capital Gains Tax. Estimated interest mode uses a simplified calculation:
+            mortgage balance × annual rate ÷ 12.
           </p>
         </div>
       </section>
